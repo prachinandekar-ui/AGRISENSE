@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGRISENSE — Smart Crop Recommendation & Farm Management</title>
+  <meta name="description"
+    content="AGRISENSE helps farmers find the best crop to grow based on soil type, location, and season. View top 3 crops, suitability score, water requirements, and growing time.">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js for Visual Crop Comparison -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Farming Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            agri: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              300: '#86efac',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+              950: '#052e16',
+            },
+            harvest: {
+              50: '#fefce8',
+              100: '#fef9c3',
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-stone-50 text-stone-900 min-h-screen flex flex-col antialiased">
+
+  <!-- ================= TOP NAVIGATION BAR ================= -->
+  <header class="bg-agri-950 text-white shadow-xl sticky top-0 z-50 border-b border-agri-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer select-none" onclick="navigateTo('home')">
+        <div
+          class="w-12 h-12 bg-harvest-400 rounded-2xl flex items-center justify-center border-2 border-white shadow-md transform hover:rotate-6 transition">
+          <!-- Sprout in Sun Icon -->
+          <svg class="w-7 h-7 text-agri-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 20h10" />
+            <path d="M10 20c5.5-2.5.8-6.4 3-10" />
+            <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
+            <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4.3.9-4.9 2z" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-2xl font-black tracking-tight flex items-center gap-1.5">
+            AGRI<span class="text-harvest-400">SENSE</span>
+          </div>
+          <div class="text-[11px] text-emerald-200 hidden sm:block font-medium tracking-wide" data-i18n="brandSubtitle">
+            Smart Crop Recommendation Based on Soil, Location & Season
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-6 text-sm font-bold text-emerald-100">
+        <button onclick="navigateTo('home')" class="nav-btn hover:text-harvest-400 transition" id="nav-home"
+          data-i18n="navHome">Get Recommendation</button>
+        <button onclick="navigateTo('home'); document.getElementById('howItWorks').scrollIntoView({behavior:'smooth'});"
+          class="nav-btn hover:text-harvest-400 transition" id="nav-howItWorks" data-i18n="navHowItWorks">How It
+          Works</button>
+        <button onclick="navigateTo('weather')" class="nav-btn hover:text-harvest-400 transition" id="nav-weather"
+          data-i18n="navWeather">Weather</button>
+        <button onclick="navigateTo('mandi')" class="nav-btn hover:text-harvest-400 transition" id="nav-mandi"
+          data-i18n="navMandi">Mandi Prices</button>
+        <button onclick="navigateTo('history')" class="nav-btn hover:text-harvest-400 transition" id="nav-history"
+          data-i18n="navHistory">History</button>
+      </nav>
+
+      <!-- Language Switcher & Profile/Auth Controls -->
+      <div class="flex items-center space-x-3">
+        <!-- 3 Major Farmer Languages (English, Hindi, Marathi) -->
+        <div class="flex items-center bg-agri-900/90 rounded-xl px-2.5 py-1.5 border border-agri-800">
+          <span class="mr-1.5 text-harvest-400 text-sm">🌐</span>
+          <select id="langSelect" aria-label="Select Language"
+            class="bg-transparent text-white text-xs sm:text-sm font-bold focus:outline-none cursor-pointer">
+            <option value="en" class="text-stone-900">English</option>
+            <option value="hi" class="text-stone-900">हिंदी (Hindi)</option>
+            <option value="mr" class="text-stone-900">मराठी (Marathi)</option>
+          </select>
+        </div>
+
+        <!-- Auth / Profile Badge -->
+        <div id="authNavBadge">
+          <!-- Populated by app.js -->
+        </div>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button onclick="toggleMobileNav()" aria-label="Toggle Navigation Menu"
+          class="md:hidden p-2 text-emerald-200 hover:text-white focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+          </svg>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mobile Dropdown Navigation -->
+    <div id="mobileNavMenu"
+      class="hidden md:hidden bg-agri-900 border-t border-agri-800 px-4 py-3 space-y-2 text-sm font-bold text-emerald-100">
+      <button onclick="navigateTo('home'); toggleMobileNav();"
+        class="block w-full text-left py-2 hover:text-harvest-400" data-i18n="navHome">Get Recommendation</button>
+      <button
+        onclick="navigateTo('home'); toggleMobileNav(); document.getElementById('howItWorks').scrollIntoView({behavior:'smooth'});"
+        class="block w-full text-left py-2 hover:text-harvest-400" data-i18n="navHowItWorks">How It Works</button>
+      <button onclick="navigateTo('weather'); toggleMobileNav();"
+        class="block w-full text-left py-2 hover:text-harvest-400" data-i18n="navWeather">Weather</button>
+      <button onclick="navigateTo('mandi'); toggleMobileNav();"
+        class="block w-full text-left py-2 hover:text-harvest-400" data-i18n="navMandi">Mandi Prices</button>
+      <button onclick="navigateTo('history'); toggleMobileNav();"
+        class="block w-full text-left py-2 hover:text-harvest-400" data-i18n="navHistory">History</button>
+      <button onclick="navigateTo('profile'); toggleMobileNav();" class="block w-full text-left py-2 text-harvest-400"
+        data-i18n="navProfile">My Farm Profile</button>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTENT ROUTER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ================= VIEW 1: HOME & RECOMMENDATION ENGINE ================= -->
+    <div id="view-home" class="fade-in space-y-12">
+
+      <!-- HERO BANNER -->
+      <section
+        class="bg-gradient-to-br from-agri-950 via-agri-900 to-emerald-800 text-white p-6 sm:p-10 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-agri-800">
+        <div class="space-y-4 max-w-2xl">
+          <div
+            class="inline-flex items-center gap-2 bg-agri-900/90 border border-emerald-700/60 px-3.5 py-1.5 rounded-full text-emerald-300 text-xs font-bold uppercase tracking-wider"
+            data-i18n="badgeNational">
+            🌱 Indian Agronomic Intelligence
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight" data-i18n="heroTitle">
+            Find the Best Crop for Your Land
+          </h1>
+          <p class="text-emerald-100 text-base sm:text-lg font-medium leading-relaxed" data-i18n="heroSubtitle">
+            Get scientific, high-profit crop recommendations based on your soil type, regional climate, and upcoming
+            season.
+          </p>
+          <div class="flex flex-wrap items-center gap-3 pt-2 text-xs font-bold text-emerald-200">
+            <span class="flex items-center gap-1.5">✓ 16+ Verified Crops</span>
+            <span class="flex items-center gap-1.5">✓ Water & Duration Analysis</span>
+            <span class="flex items-center gap-1.5">✓ Regional APMC Mandi Rates</span>
+          </div>
+        </div>
+
+        <!-- Hero Quick Action Card -->
+        <div
+          class="w-full md:w-auto bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center flex flex-col items-center gap-3 shadow-lg">
+          <div class="text-4xl">🌾</div>
+          <div class="text-sm font-extrabold text-white">Ready for Sowing Season?</div>
+          <p class="text-xs text-emerald-200 max-w-xs">Enter your soil and location details below to generate
+            recommendations in seconds.</p>
+          <button onclick="document.getElementById('recommendationForm').scrollIntoView({behavior:'smooth'});"
+            class="w-full py-3 bg-harvest-400 hover:bg-harvest-500 text-agri-950 font-black text-sm rounded-xl transition shadow">
+            Start Crop Selection ↓
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= 3-INPUT RECOMMENDATION FORM ================= -->
+      <!-- As requested: 1. Soil Type, 2. Location, 3. Season -->
+      <section class="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden" id="recommendationCard">
+
+        <div class="bg-agri-900 text-white p-6 sm:p-8 border-b border-agri-800">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl sm:text-3xl font-black flex items-center gap-3">
+                <span class="text-harvest-400 text-3xl">🌱</span>
+                <span data-i18n="heroTitle">Find the Best Crop for Your Land</span>
+              </h2>
+              <p class="text-emerald-200 text-xs sm:text-sm mt-1 font-medium">
+                Choose your soil type, location, and season to see the top 3 best-yielding crops.
+              </p>
+            </div>
+            <span
+              class="hidden sm:inline-block px-3 py-1 bg-agri-800 rounded-xl text-xs font-bold text-emerald-300 border border-emerald-700">
+              3 Simple Steps
+            </span>
+          </div>
+        </div>
+
+        <form id="recommendationForm" class="p-6 sm:p-8 space-y-8">
+
+          <!-- STEP 1: SOIL TYPE -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-lg font-black text-stone-900 flex items-center gap-2">
+                  <span class="text-emerald-700">🪵</span> <span data-i18n="step1Title">Select Soil Type</span>
+                </h3>
+                <p class="text-xs text-stone-500 font-medium" data-i18n="step1Subtitle">Choose the dominant soil on your
+                  farmland</p>
+              </div>
+              <span
+                class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                Step 1 of 3
+              </span>
+            </div>
+
+            <!-- Soil Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" id="soilCardContainer">
+              <!-- Rendered by app.js -->
+            </div>
+          </div>
+
+          <!-- STEP 2: LOCATION -->
+          <div class="border-t border-stone-200 pt-8">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-lg font-black text-stone-900 flex items-center gap-2">
+                  <span class="text-emerald-700">📍</span> <span data-i18n="step2Title">Location & Region</span>
+                </h3>
+                <p class="text-xs text-stone-500 font-medium" data-i18n="step2Subtitle">Where is your farm located?</p>
+              </div>
+              <span
+                class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                Step 2 of 3
+              </span>
+            </div>
+
+            <div class="bg-stone-50 p-5 rounded-2xl border border-stone-200 space-y-4">
+              <!-- State & District Pickers -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="stateSelect"
+                    class="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wide">State</label>
+                  <select id="stateSelect" class="form-control-large">
+                    <!-- Populated dynamically -->
+                  </select>
+                </div>
+                <div>
+                  <label for="districtSelect"
+                    class="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wide">District /
+                    Block</label>
+                  <select id="districtSelect" class="form-control-large">
+                    <!-- Populated dynamically -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Live Auto-Detection & Summary -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <button type="button" id="btnAutoLocate" onclick="detectLiveLocation()"
+                  class="px-4 py-2.5 bg-emerald-100 hover:bg-emerald-200 text-agri-900 font-bold rounded-xl text-xs transition inline-flex items-center gap-2 self-start">
+                  <span data-i18n="btnAutoLocate">📍 Use My Live Location</span>
+                </button>
+                <div id="locSummaryText" class="text-xs font-semibold text-stone-700">
+                  <!-- Populated by app.js -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3: SEASON & LAND AREA -->
+          <div class="border-t border-stone-200 pt-8">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-lg font-black text-stone-900 flex items-center gap-2">
+                  <span class="text-emerald-700">🚜</span> <span data-i18n="step3Title">Upcoming Season</span>
+                </h3>
+                <p class="text-xs text-stone-500 font-medium" data-i18n="step3Subtitle">Which season are you sowing for?
+                </p>
+              </div>
+              <span
+                class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                Step 3 of 3
+              </span>
+            </div>
+
+            <!-- Season Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-5" id="seasonCardContainer">
+              <!-- Rendered by app.js -->
+            </div>
+
+            <!-- Land Size Input -->
+            <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200 max-w-sm">
+              <label for="landAreaInput" class="block text-xs font-bold text-stone-700 mb-1.5"
+                data-i18n="landAreaLabel">
+                Total Land Size (Acres)
+              </label>
+              <div class="flex items-center gap-3">
+                <input id="landAreaInput" type="number" step="0.5" min="0.5" max="100" value="2.5"
+                  class="w-28 font-control-large text-center font-bold text-lg p-2.5 border-2 border-stone-300 rounded-xl">
+                <span class="text-xs font-semibold text-stone-500">Acres (Used to estimate total yield & profit)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- LARGE CTA BUTTON (User requested: large buttons, clean farming design) -->
+          <div class="pt-4">
+            <button type="submit" id="btnSubmit" class="btn-farmer-cta w-full">
+              <span class="text-2xl">🌱</span>
+              <span data-i18n="btnGetRecommendation">Get Recommendation</span>
+              <svg class="w-6 h-6 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- ================= RECOMMENDATION RESULTS SECTION ================= -->
+      <!-- As requested: Shows Top 3 suitable crops with Crop name, Suitability percentage, Short reason, Water requirement, Growing time -->
+      <section id="resultsSection" class="hidden fade-in space-y-8">
+
+        <!-- Winner Banner -->
+        <div
+          class="bg-gradient-to-r from-agri-950 via-agri-900 to-emerald-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-agri-800">
+          <div>
+            <span
+              class="bg-harvest-400 text-agri-950 px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+              Top #1 Recommendation
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-black mt-2" id="winnerCropName">
+              🌱 Cotton
+            </h2>
+            <p class="text-emerald-200 text-xs sm:text-sm mt-1" data-i18n="resultsSubtitle">
+              Calculated based on agronomy models, regional climate, and market trends
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button onclick="window.print()"
+              class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs border border-white/20 flex items-center gap-1.5 transition">
+              <span>🖨️</span> Print Report
+            </button>
+            <button onclick="document.getElementById('recommendationCard').scrollIntoView({behavior:'smooth'});"
+              class="px-4 py-2.5 bg-harvest-400 hover:bg-harvest-500 text-agri-950 font-black rounded-xl text-xs transition"
+              data-i18n="btnCheckAnother">
+              🔄 Check Another Field
+            </button>
+          </div>
+        </div>
+
+        <!-- TOP 3 CROP RECOMMENDATION CARDS -->
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl sm:text-2xl font-black text-stone-900" data-i18n="resultsTitle">
+              Top 3 Recommended Crops for Your Field
+            </h3>
+            <span class="text-xs text-stone-500 font-bold hidden sm:inline">Ranked by Suitability</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="cropCardsContainer">
+            <!-- Dynamically populated with crop cards containing:
+                 - Crop name & icon
+                 - Suitability percentage
+                 - Short reason
+                 - Water requirement
+                 - Growing time
+            -->
+          </div>
+        </div>
+
+        <!-- COMPARATIVE SUITABILITY CHART -->
+        <div class="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm">
+          <h3 class="text-lg font-black text-stone-900 mb-1" data-i18n="chartTitle">
+            Crop Suitability Comparison (%)
+          </h3>
+          <p class="text-xs text-stone-500 mb-4">Visual score ranking based on your soil, season, and regional climate
+            match.</p>
+          <div class="h-64 sm:h-72 w-full">
+            <canvas id="suitabilityChartCanvas"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= FARMER ADVISORY NOTICE ================= -->
+      <!-- As requested: note that farmers should also check local weather and market prices -->
+      <section class="advisory-notice p-6 sm:p-7 shadow-sm">
+        <div class="flex items-start gap-4">
+          <span class="text-3xl sm:text-4xl flex-shrink-0">⚠️</span>
+          <div class="space-y-1.5">
+            <h4 class="text-base sm:text-lg font-black text-amber-950" data-i18n="advisoryAlertTitle">
+              Important Farmer Advisory Notice
+            </h4>
+            <p class="text-xs sm:text-sm text-amber-900 leading-relaxed font-medium" data-i18n="advisoryAlertBody">
+              Crop recommendations are generated using scientific agronomic suitability models. We strongly advise
+              farmers to cross-check real-time local weather forecasts (such as monsoon onset or rainfall breaks) and
+              current APMC Mandi commodity rates before final seed procurement and sowing.
+            </p>
+            <div class="pt-2 flex flex-wrap gap-4 text-xs font-bold text-amber-950">
+              <button onclick="navigateTo('weather')" class="hover:underline flex items-center gap-1">
+                🌤 Check Regional Weather Forecast →
+              </button>
+              <button onclick="navigateTo('mandi')" class="hover:underline flex items-center gap-1">
+                📊 Check Live Mandi Rates →
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= HOW IT WORKS SECTION ================= -->
+      <!-- As requested: Add a short “How it works” section -->
+      <section id="howItWorks" class="bg-white rounded-3xl p-6 sm:p-10 border border-stone-200 shadow-sm space-y-8">
+        <div class="text-center max-w-2xl mx-auto space-y-2">
+          <div
+            class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-agri-900 text-xs font-extrabold uppercase tracking-wider">
+            Clear & Simple Process
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-stone-900" data-i18n="howItWorksTitle">
+            How CropWise Works
+          </h2>
+          <p class="text-xs sm:text-sm text-stone-500 font-medium" data-i18n="howItWorksSubtitle">
+            Simple, transparent, and built for real Indian farming conditions
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 relative">
+
+          <!-- Step 1 -->
+          <div
+            class="bg-stone-50 p-6 rounded-2xl border border-stone-200 space-y-3 relative hover:shadow-md transition">
+            <div class="step-number">1</div>
+            <h3 class="font-black text-stone-900 text-lg" data-i18n="hwStep1Title">
+              1. Select Soil & Location
+            </h3>
+            <p class="text-xs sm:text-sm text-stone-600 leading-relaxed" data-i18n="hwStep1Desc">
+              Pick your soil type (Black, Alluvial, Red, etc.), district, and upcoming sowing season.
+            </p>
+          </div>
+
+          <!-- Step 2 -->
+          <div
+            class="bg-stone-50 p-6 rounded-2xl border border-stone-200 space-y-3 relative hover:shadow-md transition">
+            <div class="step-number">2</div>
+            <h3 class="font-black text-stone-900 text-lg" data-i18n="hwStep2Title">
+              2. Intelligent Agronomic Match
+            </h3>
+            <p class="text-xs sm:text-sm text-stone-600 leading-relaxed" data-i18n="hwStep2Desc">
+              Our model matches your land against 16+ verified crops, water requirements, and climate zones.
+            </p>
+          </div>
+
+          <!-- Step 3 -->
+          <div
+            class="bg-stone-50 p-6 rounded-2xl border border-stone-200 space-y-3 relative hover:shadow-md transition">
+            <div class="step-number">3</div>
+            <h3 class="font-black text-stone-900 text-lg" data-i18n="hwStep3Title">
+              3. Harvest High Profit
+            </h3>
+            <p class="text-xs sm:text-sm text-stone-600 leading-relaxed" data-i18n="hwStep3Desc">
+              Review suitability, growing days, irrigation advisory, and estimated Mandi earnings.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ================= VIEW 2: LOGIN PAGE ================= -->
+    <!-- With Logo and Title Name as AGRISENSE -->
+    <div id="view-login" class="hidden fade-in max-w-md mx-auto py-6 sm:py-10">
+      <div class="bg-white p-7 sm:p-10 rounded-3xl border border-stone-200 shadow-xl space-y-6">
+
+        <!-- AGRISENSE Logo & Header -->
+        <div class="text-center space-y-2">
+          <div
+            class="w-20 h-20 bg-harvest-400 rounded-3xl flex items-center justify-center mx-auto shadow-lg border-4 border-white transform hover:scale-105 transition">
+            <!-- Sprout in Sun Icon -->
+            <svg class="w-11 h-11 text-agri-950" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 20h10" />
+              <path d="M10 20c5.5-2.5.8-6.4 3-10" />
+              <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
+              <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4.3.9-4.9 2z" />
+            </svg>
+          </div>
+
+          <h1
+            class="text-3xl sm:text-4xl font-black text-agri-950 tracking-tight flex items-center justify-center gap-1.5 mt-2">
+            AGRI<span class="text-harvest-500">SENSE</span>
+          </h1>
+          <div
+            class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-agri-900 font-extrabold text-[11px] uppercase tracking-wider">
+            Farmer Login Portal
+          </div>
+          <p class="text-xs text-stone-500 font-medium">
+            Sign in to access personalized crop recommendations, soil health insights, and market trends.
+          </p>
+        </div>
+
+        <!-- 1-Click Demo Farmer Login (Instant Access) -->
+        <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-center space-y-2">
+          <span class="text-xs font-bold text-emerald-900 block">⚡ Quick 1-Click Evaluation Access</span>
+          <button type="button" onclick="loginAsDemoFarmer()"
+            class="w-full py-3 bg-harvest-400 hover:bg-harvest-500 text-agri-950 font-black text-sm rounded-xl shadow transition flex items-center justify-center gap-2">
+            <span>🚀 Continue as Demo Farmer (Ramesh Patil)</span>
+          </button>
+        </div>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-stone-200"></div>
+          <span class="flex-shrink mx-3 text-xs text-stone-400 font-bold uppercase">or sign in with mobile</span>
+          <div class="flex-grow border-t border-stone-200"></div>
+        </div>
+
+        <!-- Login Form -->
+        <form onsubmit="handleLoginSubmit(event)" class="space-y-4 text-left">
+          <div>
+            <label for="loginPhone" class="block text-xs font-bold text-stone-700 mb-1.5">Mobile Number / Phone</label>
+            <div class="relative flex items-center">
+              <span class="absolute left-3.5 text-stone-500 font-bold text-sm">+91</span>
+              <input id="loginPhone" type="tel" required value="9876543210" maxlength="10" placeholder="9876543210"
+                class="form-control-large pl-14">
+            </div>
+          </div>
+          <div>
+            <label for="loginPass" class="block text-xs font-bold text-stone-700 mb-1.5">Password / PIN</label>
+            <div class="relative flex items-center">
+              <input id="loginPass" type="password" required value="kisan123" placeholder="Enter password"
+                class="form-control-large pr-10">
+              <button type="button" onclick="togglePasswordVisibility('loginPass', this)"
+                class="absolute right-3.5 text-stone-400 hover:text-stone-700 text-sm focus:outline-none">
+                👁️
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-xs text-stone-600 font-medium">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded">
+              <span>Remember me</span>
+            </label>
+            <a href="#"
+              onclick="alert('For assistance or password reset, contact your local KVK or toll-free Kisan Call Centre: 1800-180-1551'); return false;"
+              class="text-emerald-700 font-bold hover:underline">Forgot PIN?</a>
+          </div>
+
+          <button type="submit"
+            class="w-full py-4 bg-agri-800 hover:bg-agri-900 text-white font-black text-base rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+            <span>🌱 Sign In to AGRISENSE</span>
+          </button>
+        </form>
+
+        <!-- Prominent Create Account Box -->
+        <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4 text-center space-y-2">
+          <span class="text-xs font-bold text-stone-600 block">New to AGRISENSE?</span>
+          <button type="button" onclick="navigateTo('register')"
+            class="w-full py-3 bg-agri-100 hover:bg-agri-200 text-agri-900 border-2 border-agri-600 font-black text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2">
+            <span>📝 Create Farmer Account</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= VIEW 3: CREATE ACCOUNT PAGE ================= -->
+    <!-- With Logo and Title Name as AGRISENSE -->
+    <div id="view-register" class="hidden fade-in max-w-xl mx-auto py-6 sm:py-10">
+      <div class="bg-white p-7 sm:p-10 rounded-3xl border border-stone-200 shadow-xl space-y-6">
+
+        <!-- AGRISENSE Logo & Header -->
+        <div class="text-center space-y-2">
+          <div
+            class="w-20 h-20 bg-harvest-400 rounded-3xl flex items-center justify-center mx-auto shadow-lg border-4 border-white transform hover:scale-105 transition">
+            <!-- Sprout in Sun Icon -->
+            <svg class="w-11 h-11 text-agri-950" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 20h10" />
+              <path d="M10 20c5.5-2.5.8-6.4 3-10" />
+              <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
+              <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4.3.9-4.9 2z" />
+            </svg>
+          </div>
+
+          <h1
+            class="text-3xl sm:text-4xl font-black text-agri-950 tracking-tight flex items-center justify-center gap-1.5 mt-2">
+            AGRI<span class="text-harvest-500">SENSE</span>
+          </h1>
+          <h2 class="text-xl sm:text-2xl font-black text-stone-900 mt-1">
+            Create Farmer Account
+          </h2>
+          <p class="text-xs text-stone-500 font-medium max-w-sm mx-auto">
+            Join thousands of smart farmers using AGRISENSE AI to plant smarter, conserve water, and maximize crop
+            profit.
+          </p>
+        </div>
+
+        <!-- Registration Form -->
+        <form onsubmit="handleRegisterSubmit(event)" class="space-y-4 text-left">
+
+          <!-- Full Name -->
+          <div>
+            <label for="regName" class="block text-xs font-bold text-stone-700 mb-1">Full Name (शेतकऱ्याचे नाव / किसान
+              का नाम)</label>
+            <div class="relative flex items-center">
+              <span class="absolute left-3.5 text-stone-400 text-lg">👨‍🌾</span>
+              <input id="regName" type="text" required placeholder="e.g. Ramesh Patil" class="form-control-large pl-11">
+            </div>
+          </div>
+
+          <!-- Mobile Number -->
+          <div>
+            <label for="regPhone" class="block text-xs font-bold text-stone-700 mb-1">Mobile Number (मोबाईल
+              नंबर)</label>
+            <div class="relative flex items-center">
+              <span class="absolute left-3.5 text-stone-500 font-bold text-sm">+91</span>
+              <input id="regPhone" type="tel" required maxlength="10" placeholder="98XXXXXXXX"
+                class="form-control-large pl-14">
+            </div>
+            <span class="text-[11px] text-stone-400 font-medium">Used for SMS advisory and account login</span>
+          </div>
+
+          <!-- State & District Dropdowns -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="regState" class="block text-xs font-bold text-stone-700 mb-1">State (राज्य)</label>
+              <select id="regState" class="form-control-large">
+                <!-- Dynamically populated from LOCATIONS_DATA -->
+              </select>
+            </div>
+            <div>
+              <label for="regDistrict" class="block text-xs font-bold text-stone-700 mb-1">District (जिल्हा /
+                जिला)</label>
+              <select id="regDistrict" class="form-control-large">
+                <!-- Dynamically populated from LOCATIONS_DATA -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Farm Size & Dominant Soil -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="regArea" class="block text-xs font-bold text-stone-700 mb-1">Total Farm Size (Acres)</label>
+              <input id="regArea" type="number" step="0.5" min="0.5" max="100" value="2.5" class="form-control-large">
+            </div>
+            <div>
+              <label for="regSoil" class="block text-xs font-bold text-stone-700 mb-1">Primary Soil Type</label>
+              <select id="regSoil" class="form-control-large">
+                <option value="Black Soil" selected>Black Soil (काळी जमीन)</option>
+                <option value="Alluvial Soil">Alluvial Soil (गाळाची जमीन)</option>
+                <option value="Red Soil">Red Soil (तांबडी जमीन)</option>
+                <option value="Clay Loam">Clay Loam (चिकण दोमट)</option>
+                <option value="Sandy Soil">Sandy Soil (वाळूमिश्रित)</option>
+                <option value="Laterite Soil">Laterite Soil (जांभी जमीन)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Password & Confirm Password -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="regPass" class="block text-xs font-bold text-stone-700 mb-1">Create Password / PIN</label>
+              <div class="relative flex items-center">
+                <input id="regPass" type="password" required placeholder="Min 6 characters"
+                  class="form-control-large pr-10">
+                <button type="button" onclick="togglePasswordVisibility('regPass', this)"
+                  class="absolute right-3 text-stone-400 hover:text-stone-700 text-sm focus:outline-none">
+                  👁️
+                </button>
+              </div>
+            </div>
+            <div>
+              <label for="regConfirmPass" class="block text-xs font-bold text-stone-700 mb-1">Confirm Password</label>
+              <div class="relative flex items-center">
+                <input id="regConfirmPass" type="password" required placeholder="Repeat password"
+                  class="form-control-large pr-10">
+                <button type="button" onclick="togglePasswordVisibility('regConfirmPass', this)"
+                  class="absolute right-3 text-stone-400 hover:text-stone-700 text-sm focus:outline-none">
+                  👁️
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agreement Checkbox -->
+          <div class="p-3 bg-stone-50 rounded-xl border border-stone-200">
+            <label class="flex items-start gap-2.5 cursor-pointer text-xs text-stone-700">
+              <input id="regAgree" type="checkbox" checked required class="w-4 h-4 text-emerald-600 rounded mt-0.5">
+              <span>I agree to receive agronomic advice, monsoon weather alerts, and APMC Mandi updates from
+                AGRISENSE.</span>
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit"
+            class="w-full py-4 bg-agri-800 hover:bg-agri-900 text-white font-black text-base rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+            <span>🌱 Create My AGRISENSE Account</span>
+          </button>
+        </form>
+
+        <!-- Back to Login Link -->
+        <div class="text-center pt-2 text-xs sm:text-sm text-stone-600 font-medium border-t border-stone-100">
+          Already have an AGRISENSE account?
+          <button type="button" onclick="navigateTo('login')" class="text-emerald-700 font-black hover:underline ml-1">
+            Sign In here →
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= VIEW 4: WEATHER ADVISORY PAGE ================= -->
+    <div id="view-weather" class="hidden fade-in max-w-4xl mx-auto space-y-6">
+      <div class="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+        <div
+          class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-100 pb-4">
+          <div>
+            <h2 class="text-2xl font-black text-stone-900">🌤 Regional Weather & Agro-Advisory</h2>
+            <p class="text-xs text-stone-500 font-medium">Real-time agricultural weather conditions for your region</p>
+          </div>
+          <span class="text-xs bg-sky-100 text-sky-800 px-3 py-1 rounded-full font-bold">
+            Live Station: Central Agro-Zone
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <div class="p-4 bg-sky-50 rounded-2xl border border-sky-100">
+            <span class="text-xs font-bold text-sky-800 uppercase block mb-1">Temperature</span>
+            <strong class="text-2xl font-black text-stone-900">28.5°C</strong>
+            <span class="text-[11px] text-stone-500 block mt-1">Normal Range</span>
+          </div>
+          <div class="p-4 bg-sky-50 rounded-2xl border border-sky-100">
+            <span class="text-xs font-bold text-sky-800 uppercase block mb-1">Humidity</span>
+            <strong class="text-2xl font-black text-stone-900">72%</strong>
+            <span class="text-[11px] text-stone-500 block mt-1">Favorable</span>
+          </div>
+          <div class="p-4 bg-sky-50 rounded-2xl border border-sky-100">
+            <span class="text-xs font-bold text-sky-800 uppercase block mb-1">Rain Forecast</span>
+            <strong class="text-2xl font-black text-stone-900">4.2 mm</strong>
+            <span class="text-[11px] text-stone-500 block mt-1">Light Showers</span>
+          </div>
+          <div class="p-4 bg-sky-50 rounded-2xl border border-sky-100">
+            <span class="text-xs font-bold text-sky-800 uppercase block mb-1">Wind Speed</span>
+            <strong class="text-2xl font-black text-stone-900">11 km/h</strong>
+            <span class="text-[11px] text-stone-500 block mt-1">Gentle Breeze</span>
+          </div>
+        </div>
+
+        <div class="bg-amber-50 border-2 border-amber-200 p-5 rounded-2xl space-y-2">
+          <h4 class="font-black text-amber-950 text-sm flex items-center gap-2">
+            <span>📢</span> Weather Rule for Farmers:
+          </h4>
+          <p class="text-xs sm:text-sm text-amber-900 leading-relaxed font-medium">
+            Light scattered monsoon showers are expected over the next 48 hours. Farmers planning sowing should wait
+            until soil moisture reaches at least 60% saturation (vapsa condition) to prevent seed rot. Delay scheduled
+            flood irrigation.
+          </p>
+        </div>
+
+        <button onclick="navigateTo('home')" class="btn-farmer-secondary">
+          ← Back to Crop Recommendation
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= VIEW 5: MANDI PRICES PAGE ================= -->
+    <div id="view-mandi" class="hidden fade-in max-w-5xl mx-auto space-y-6">
+      <div class="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 class="text-2xl font-black text-stone-900">📊 Regional APMC Mandi Rates</h2>
+            <p class="text-xs text-stone-500 font-medium">Indicative wholesale prices for recommended crops</p>
+          </div>
+          <span class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold">
+            Updated: Today
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-stone-700">
+            <thead class="bg-stone-100 text-stone-900 text-xs font-bold uppercase">
+              <tr>
+                <th class="p-3.5 rounded-l-xl">Crop Name</th>
+                <th class="p-3.5">Mandi Market</th>
+                <th class="p-3.5">Average Price</th>
+                <th class="p-3.5">Unit</th>
+                <th class="p-3.5 rounded-r-xl">Price Trend</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-stone-100 font-medium">
+              <tr>
+                <td class="p-3.5 font-bold text-stone-900">🌱 Cotton (कापूस)</td>
+                <td class="p-3.5">Nagpur APMC</td>
+                <td class="p-3.5 font-extrabold text-emerald-700">₹7,250</td>
+                <td class="p-3.5 text-stone-500">per Quintal</td>
+                <td class="p-3.5 text-emerald-600 font-bold">▲ +2.4%</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-bold text-stone-900">🫘 Soybean (सोयाबीन)</td>
+                <td class="p-3.5">Amravati APMC</td>
+                <td class="p-3.5 font-extrabold text-emerald-700">₹4,850</td>
+                <td class="p-3.5 text-stone-500">per Quintal</td>
+                <td class="p-3.5 text-stone-500 font-bold">▼ -0.5%</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-bold text-stone-900">🌾 Wheat (गहू)</td>
+                <td class="p-3.5">Indore Mandi</td>
+                <td class="p-3.5 font-extrabold text-emerald-700">₹2,450</td>
+                <td class="p-3.5 text-stone-500">per Quintal</td>
+                <td class="p-3.5 text-emerald-600 font-bold">▲ +1.1%</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-bold text-stone-900">🫛 Chickpea / Gram (चना)</td>
+                <td class="p-3.5">Akola APMC</td>
+                <td class="p-3.5 font-extrabold text-emerald-700">₹5,750</td>
+                <td class="p-3.5 text-stone-500">per Quintal</td>
+                <td class="p-3.5 text-emerald-600 font-bold">▲ +1.8%</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-bold text-stone-900">🌽 Maize (मका)</td>
+                <td class="p-3.5">Nashik Mandi</td>
+                <td class="p-3.5 font-extrabold text-emerald-700">₹2,220</td>
+                <td class="p-3.5 text-stone-500">per Quintal</td>
+                <td class="p-3.5 text-emerald-600 font-bold">▲ +0.8%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-stone-400 italic">* Mandi rates reflect modal daily averages and may fluctuate depending
+          on grain moisture and grade.</p>
+
+        <button onclick="navigateTo('home')" class="btn-farmer-secondary">
+          ← Back to Crop Recommendation
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= VIEW 6: HISTORY PAGE ================= -->
+    <div id="view-history" class="hidden fade-in max-w-4xl mx-auto space-y-6">
+      <div class="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-stone-100 pb-4">
+          <div>
+            <h2 class="text-2xl font-black text-stone-900">📜 Previous Field Recommendations</h2>
+            <p class="text-xs text-stone-500 font-medium">History of crops tested for your farm</p>
+          </div>
+          <button onclick="localStorage.removeItem('cropwise_history'); renderHistoryList();"
+            class="text-xs text-red-600 hover:underline font-bold">
+            Clear History
+          </button>
+        </div>
+
+        <div class="space-y-3" id="historyItemsContainer">
+          <!-- Populated by app.js -->
+        </div>
+
+        <button onclick="navigateTo('home')" class="btn-farmer-secondary">
+          ← Test a New Field
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= VIEW 7: PROFILE PAGE ================= -->
+    <div id="view-profile" class="hidden fade-in max-w-lg mx-auto py-8">
+      <div class="bg-white p-8 rounded-3xl border border-stone-200 shadow-xl space-y-6">
+        <div class="flex items-center gap-4">
+          <div
+            class="w-16 h-16 rounded-full bg-emerald-100 text-agri-950 flex items-center justify-center text-3xl font-black border-2 border-emerald-300">
+            👨‍🌾
+          </div>
+          <div>
+            <h2 class="text-2xl font-black text-stone-900" id="profName">Ramesh Patil</h2>
+            <p class="text-xs text-stone-500 font-bold">Registered Farmer • CropWise</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-sm text-stone-700 border-t border-stone-100 pt-4 font-medium">
+          <div class="flex justify-between py-1 border-b border-stone-50">
+            <span class="text-stone-500">Mobile:</span> <strong id="profPhone"
+              class="text-stone-900 font-bold">9876543210</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-stone-50">
+            <span class="text-stone-500">State:</span> <strong id="profState"
+              class="text-stone-900 font-bold">Maharashtra</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-stone-50">
+            <span class="text-stone-500">District:</span> <strong id="profDistrict"
+              class="text-stone-900 font-bold">Nagpur</strong>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-stone-500">Total Farm Size:</span> <strong id="profArea"
+              class="text-stone-900 font-bold">2.5 Acres</strong>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button onclick="navigateTo('home')"
+            class="flex-1 py-3 bg-agri-800 hover:bg-agri-900 text-white font-bold text-sm rounded-xl transition">
+            Go to Recommendation
+          </button>
+          <button onclick="logoutUser()"
+            class="px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl transition">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-agri-950 text-emerald-300 py-10 border-t border-agri-900 text-center text-xs mt-16">
+    <div class="max-w-7xl mx-auto px-4 space-y-3">
+      <div class="flex items-center justify-center gap-2 font-black text-white text-lg">
+        <span class="text-harvest-400">🌱</span>
+        <span>CropWise</span>
+      </div>
+      <p class="text-emerald-200 font-medium">Smart Crop Recommendation Based on Soil, Location & Season</p>
+      <p class="text-stone-400 max-w-xl mx-auto">
+        Empowering Indian farmers with scientific agronomy insights, weather advisories, and APMC Mandi intelligence.
+      </p>
+      <div class="text-[11px] text-stone-500 pt-2">
+        © 2026 CropWise • Made for Farmers
+      </div>
+    </div>
+  </footer>
+
+  <!-- Helper for mobile navigation menu toggle -->
+  <script>
+    function toggleMobileNav() {
+      const menu = document.getElementById('mobileNavMenu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+  </script>
+
+  <!-- Application Scripts -->
+  <script src="js/crops-data.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "cropwise",
+  "version": "1.0.0",
+  "description": "CropWise — Smart Crop Recommendation for Farmers based on Soil, Location & Season",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 3000",
+    "serve": "npx -y serve . -p 3000"
+  },
+  "keywords": [
+    "agriculture",
+    "crop-recommendation",
+    "farming",
+    "agritech",
+    "ai"
+  ],
+  "author": "CropWise Team",
+  "license": "MIT"
+}
